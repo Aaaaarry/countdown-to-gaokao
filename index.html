@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="一个简洁温暖的日期倒计时与每日句子网站"
+    />
+    <title>向光而行 · 日期倒计时</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;600;700;800&family=Playfair+Display:ital,wght@1,600&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="background-shape shape-one" aria-hidden="true"></div>
+    <div class="background-shape shape-two" aria-hidden="true"></div>
+
+    <div class="page-shell">
+      <header class="site-header">
+        <a class="brand" href="#" aria-label="返回首页">
+          <span class="brand-mark" aria-hidden="true">
+            <svg viewBox="0 0 24 24">
+              <path d="M6 17.5 12 4l6 13.5-6-3-6 3Z"></path>
+            </svg>
+          </span>
+          <span>向光而行</span>
+        </a>
+
+        <div class="today" aria-label="今天的日期">
+          <span class="today-dot" aria-hidden="true"></span>
+          <span id="todayText">正在获取日期...</span>
+        </div>
+      </header>
+
+      <main>
+        <section class="countdown-card" aria-labelledby="countdownTitle">
+          <div class="countdown-copy">
+            <p class="eyebrow">
+              <span aria-hidden="true">✦</span>
+              每一天，都在靠近想去的地方
+            </p>
+            <h1 id="countdownTitle">距离高考还有</h1>
+
+            <div class="countdown-number-wrap" aria-live="polite">
+              <span id="daysRemaining" class="countdown-number">--</span>
+              <span class="countdown-unit">天</span>
+            </div>
+
+            <p id="countdownMessage" class="countdown-message">
+              沉住气，慢慢来。你的每一步都算数。
+            </p>
+          </div>
+
+          <div class="countdown-meta">
+            <div class="date-block">
+              <span class="meta-label">目标日期</span>
+              <strong id="targetDateText">--</strong>
+            </div>
+            <div class="progress-block">
+              <div class="progress-labels">
+                <span>这一程的进度</span>
+                <strong id="progressText">0%</strong>
+              </div>
+              <div
+                class="progress-track"
+                role="progressbar"
+                aria-label="倒计时进度"
+                aria-valuemin="0"
+                aria-valuemax="100"
+                aria-valuenow="0"
+              >
+                <span id="progressBar" class="progress-bar"></span>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="quote-card" aria-labelledby="quoteLabel">
+          <div class="quote-topline">
+            <p id="quoteLabel" class="quote-label">
+              <span class="quote-label-icon" aria-hidden="true">“</span>
+              此刻读到
+            </p>
+            <button id="nextQuoteButton" class="next-quote-button" type="button">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M20 11a8.1 8.1 0 0 0-15.5-3M4 4v4h4M4 13a8.1 8.1 0 0 0 15.5 3m.5 4v-4h-4"></path>
+              </svg>
+              换一句
+            </button>
+          </div>
+
+          <div id="quoteContent" class="quote-content" aria-live="polite">
+            <blockquote id="quoteText">正在准备今天的句子...</blockquote>
+            <p id="quoteTranslation" class="quote-translation" hidden></p>
+            <cite id="quoteSource"></cite>
+          </div>
+
+          <div class="quote-footer">
+            <span id="quoteCounter">01 / 01</span>
+            <span class="quote-line" aria-hidden="true"></span>
+            <span id="refreshHint">稍后自动更新</span>
+          </div>
+        </section>
+      </main>
+
+      <footer>
+        <p>不必着急成为答案，先认真写好今天。</p>
+        <span id="currentYear"></span>
+      </footer>
+    </div>
+
+    <script src="script.js"></script>
+  </body>
+</html>
