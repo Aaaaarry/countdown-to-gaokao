@@ -109,3 +109,59 @@ const MONTHLY_QUOTE_LIBRARIES = {
     ],
   },
 };
+
+/*
+ * 应急句子库只在当前月份尚未手动配置时使用。
+ * 它独立于所有月度库，不会回退并重复上个月的句子。
+ */
+const EMERGENCY_QUOTE_LIBRARY = {
+  0: [
+    { text: "今天适合休息，也适合为下一程整理方向。", source: "今日寄语" },
+    { text: "安静不是空白，而是让内心重新变得清楚。", source: "生活札记" },
+  ],
+  1: [
+    { text: "The secret of getting ahead is getting started.", translation: "取得进展的秘诀，就是先开始。", source: "Mark Twain · 马克·吐温", bio: "美国作家、幽默大师" },
+    { text: "把今天最重要的一件事，认真做到完成。", source: "学习札记" },
+  ],
+  2: [
+    { text: "Learning never exhausts the mind.", translation: "学习永远不会使心灵疲惫。", source: "Leonardo da Vinci · 列奥纳多·达·芬奇", bio: "意大利艺术家、科学家" },
+    { text: "理解得慢一点，也比匆忙略过更有力量。", source: "学习札记" },
+  ],
+  3: [
+    { text: "It does not matter how slowly you go as long as you do not stop.", translation: "只要不停下，走得慢也没有关系。", source: "Confucius · 孔子", bio: "中国古代思想家、教育家" },
+    { text: "每一次复盘，都让下一步更加清楚。", source: "学习札记" },
+  ],
+  4: [
+    { text: "The future depends on what you do today.", translation: "未来如何，取决于你今天做了什么。", source: "Mahatma Gandhi · 甘地", bio: "印度民族独立运动领袖" },
+    { text: "先看清下一步，再把心里的担忧交给行动。", source: "学习札记" },
+  ],
+  5: [
+    { text: "Don't count the days, make the days count.", translation: "不要只是计算日子，要让每一天都有价值。", source: "Muhammad Ali · 穆罕默德·阿里", bio: "美国拳击运动员" },
+    { text: "认真走过的一周，会留下属于你的答案。", source: "今日寄语" },
+  ],
+  6: [
+    { text: "The beautiful thing about learning is nobody can take it away from you.", translation: "学习的美好之处在于，没有人能把它从你身上夺走。", source: "B. B. King · B·B·金", bio: "美国蓝调音乐家" },
+    { text: "为喜欢的事情留一点时间，生活才有呼吸。", source: "生活札记" },
+  ],
+};
+
+// 分类标签不应作为作者显示。没有明确作者的示例统一显示为“今日寄语”。
+Object.values(MONTHLY_QUOTE_LIBRARIES).forEach((monthLibrary) => {
+  Object.values(monthLibrary).flat().forEach((quote) => {
+    if (/^[六月七月]+·星期/.test(quote.source || "")) quote.source = "今日寄语";
+  });
+});
+
+// 在当前示例月中加入结构完整的英文句子，演示翻译、中文名和人物简介字段。
+MONTHLY_QUOTE_LIBRARIES["2026-06"][4][1] = {
+  text: "It always seems impossible until it's done.",
+  translation: "在事情完成之前，它看起来总是不可能。",
+  source: "Nelson Mandela · 纳尔逊·曼德拉",
+  bio: "南非前总统、反种族隔离领袖",
+};
+MONTHLY_QUOTE_LIBRARIES["2026-07"][4][1] = {
+  text: "Believe you can and you're halfway there.",
+  translation: "相信自己能做到，你就已经走了一半。",
+  source: "Theodore Roosevelt · 西奥多·罗斯福",
+  bio: "美国第26任总统",
+};
