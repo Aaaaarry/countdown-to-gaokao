@@ -2,18 +2,6 @@
    可自定义设置
    ========================= */
 
-const CONFIG = {
-  // 初始倒计时。用户也可以直接在页面上添加、删除，数据会保存在浏览器中。
-  defaultCountdowns: [
-    { id: "gaokao", name: "高考", date: "2027-06-07" },
-    { id: "first-exam", name: "首考", date: "2027-01-06" },
-    { id: "city-exam", name: "市统测", date: "2026-09-01" },
-  ],
-  quoteRefreshInterval: 5 * 60 * 1000,
-  // 包含页面初次展示：0 至 240 分钟共出现 49 次，保护池至少需要 49 条。
-  minimumDailyQuotePoolSize: 49,
-};
-
 // 旧版通用句子，仅保留作内容备份；当前页面使用 quotes-data.js 的月度句子库。
 const LEGACY_QUOTES = [
   { text: "你的职责是平整土地，而非焦虑时光。你做三四月的事，在八九月自有答案。", source: "余世存", bio: "中国作家" },
@@ -78,16 +66,21 @@ const LEGACY_QUOTES = [
   { text: "Don't count the days, make the days count.", translation: "不要只是计算日子，要让每一天都有价值。", source: "Muhammad Ali · 穆罕默德·阿里", bio: "美国拳击运动员" },
 ];
 
-const STORAGE_KEYS = {
-  countdowns: "toward-light-countdowns",
-  dailyQuoteHistory: "toward-light-daily-quote-history",
-};
+LEGACY_QUOTES.forEach((quote, index) => {
+  quote.id ||= `legacy-${String(index + 1).padStart(3, "0")}`;
+  quote.author ||= ["今日寄语", "学习札记", "生活札记", "青春札记"].includes(quote.source) ? "" : quote.source || "";
+  quote.copyrightStatus ||= quote.author ? "uncertain" : "original";
+  quote.reviewer ||= "";
+  quote.reviewedAt ||= "";
+});
+
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
 let countdowns = loadCountdowns();
 let currentQuoteIndex = -1;
 let currentQuoteDateKey = getLocalDateKey();
 let quoteTimer;
+let editingCountdownId = null;
 
 function loadCountdowns() {
   try {
@@ -138,11 +131,12 @@ function formatToday(date) {
 function renderManageList() {
   const list = document.querySelector("#countdownManageList");
   const form = document.querySelector("#countdownForm");
-  const isFull = countdowns.length >= 3;
+  const isFull = countdowns.length >= 3 && !editingCountdownId;
   form.querySelectorAll("input, .add-countdown-button").forEach((element) => {
     element.disabled = isFull;
   });
   form.classList.toggle("is-disabled", isFull);
+  document.querySelector("#countdownLimitHint").hidden = !isFull;
   document.querySelector("#countdownNameInput").placeholder =
     isFull ? "已达到三个倒计时上限" : "例如：期末考试";
   list.innerHTML = "";
@@ -154,6 +148,7 @@ function renderManageList() {
       <div class="manage-item-actions">
         <button class="move-button move-up" type="button" aria-label="上移">↑</button>
         <button class="move-button move-down" type="button" aria-label="下移">↓</button>
+        <button class="edit-button" type="button">编辑</button>
         <button class="delete-button" type="button">删除</button>
       </div>`;
     row.querySelector("strong").textContent = countdown.name;
@@ -165,15 +160,40 @@ function renderManageList() {
     downButton.disabled = index === countdowns.length - 1;
     upButton.addEventListener("click", () => moveCountdown(index, index - 1));
     downButton.addEventListener("click", () => moveCountdown(index, index + 1));
+    row.querySelector(".edit-button").addEventListener("click", () => startEditingCountdown(countdown.id));
     row.querySelector(".delete-button").disabled = countdowns.length === 1;
     row.querySelector(".delete-button").addEventListener("click", () => {
+      if (editingCountdownId === countdown.id) editingCountdownId = null;
       countdowns = countdowns.filter((item) => item.id !== countdown.id);
       saveCountdowns();
+      document.querySelector("#countdownForm").reset();
+      document.querySelector("#submitCountdownButton").textContent = "添加倒计时";
+      document.querySelector("#cancelEditButton").hidden = true;
       renderManageList();
       updateCountdown();
     });
     list.appendChild(row);
   });
+}
+
+function startEditingCountdown(id) {
+  const countdown = countdowns.find((item) => item.id === id);
+  if (!countdown) return;
+  editingCountdownId = id;
+  document.querySelector("#countdownNameInput").value = countdown.name;
+  document.querySelector("#countdownDateInput").value = countdown.date;
+  document.querySelector("#submitCountdownButton").textContent = "保存修改";
+  document.querySelector("#cancelEditButton").hidden = false;
+  renderManageList();
+  document.querySelector("#countdownNameInput").focus();
+}
+
+function stopEditingCountdown() {
+  editingCountdownId = null;
+  document.querySelector("#countdownForm").reset();
+  document.querySelector("#submitCountdownButton").textContent = "添加倒计时";
+  document.querySelector("#cancelEditButton").hidden = true;
+  renderManageList();
 }
 
 function moveCountdown(fromIndex, toIndex) {
@@ -228,7 +248,10 @@ function getMonthKey(date = new Date()) {
 }
 
 function getQuoteFingerprint(quote) {
-  return quote.text.trim().toLocaleLowerCase();
+  return quote.text
+    .normalize("NFKC")
+    .toLocaleLowerCase()
+    .replace(/[\p{P}\p{S}\s]+/gu, "");
 }
 
 function getUniqueQuotes(quotes) {
@@ -242,9 +265,23 @@ function getUniqueQuotes(quotes) {
 }
 
 function getMonthSpecificSupplement(monthKey) {
-  const monthNumber = Number(monthKey.replace("-", ""));
-  const offset = (monthNumber * 24) % LEGACY_QUOTES.length;
-  return [...LEGACY_QUOTES.slice(offset), ...LEGACY_QUOTES.slice(0, offset)];
+  const months = Object.keys(MONTHLY_QUOTE_LIBRARIES).sort();
+  const monthIndex = months.indexOf(monthKey);
+  if (monthIndex < 0) return [];
+  const monthLibrary = MONTHLY_QUOTE_LIBRARIES[monthKey];
+  const baseCount = getUniqueQuotes(Object.values(monthLibrary).flat()).length;
+  const requiredCount = Math.max(CONFIG.minimumDailyQuotePoolSize - baseCount, 0);
+  const reservedFingerprints = new Set(
+    months.flatMap((key) => Object.values(MONTHLY_QUOTE_LIBRARIES[key]).flat()).map(getQuoteFingerprint)
+  );
+  const supplementCandidates = getUniqueQuotes(LEGACY_QUOTES).filter(
+    (quote) => !reservedFingerprints.has(getQuoteFingerprint(quote))
+  );
+  const start = months.slice(0, monthIndex).reduce((offset, key) => {
+    const previousBaseCount = getUniqueQuotes(Object.values(MONTHLY_QUOTE_LIBRARIES[key]).flat()).length;
+    return offset + Math.max(CONFIG.minimumDailyQuotePoolSize - previousBaseCount, 0);
+  }, 0);
+  return supplementCandidates.slice(start, start + requiredCount);
 }
 
 function getDailyQuotePool(date = new Date()) {
@@ -344,6 +381,7 @@ function resetQuoteTimer() {
 
 function validateMonthlyQuoteLibraries() {
   const months = Object.keys(MONTHLY_QUOTE_LIBRARIES).sort();
+  const allIds = new Set();
   months.forEach((monthKey, monthIndex) => {
     const library = MONTHLY_QUOTE_LIBRARIES[monthKey];
     const allQuotes = Object.values(library).flat();
@@ -355,6 +393,9 @@ function validateMonthlyQuoteLibraries() {
       if (containsEnglish && (!quote.translation || !quote.source || !quote.bio)) {
         console.warn(`${monthKey} 英文句子缺少翻译、作者中文名或简介：`, quote);
       }
+      if (!quote.id || allIds.has(quote.id)) console.warn(`${monthKey} 句子缺少唯一 ID 或 ID 重复：`, quote);
+      if (quote.id) allIds.add(quote.id);
+      if (!quote.copyrightStatus) console.warn(`${monthKey} 句子缺少版权状态：`, quote);
     });
 
     for (let weekday = 0; weekday <= 6; weekday += 1) {
@@ -381,6 +422,20 @@ function validateMonthlyQuoteLibraries() {
   const emergencyDuplicates = emergencyTexts.filter((text) => monthlyTexts.has(text));
   if (emergencyDuplicates.length) console.warn("应急句子库与月度库存在重复：", emergencyDuplicates);
 
+  const runtimeMonthPools = months.map((monthKey) => {
+    const quotes = getUniqueQuotes([
+      ...Object.values(MONTHLY_QUOTE_LIBRARIES[monthKey]).flat(),
+      ...getMonthSpecificSupplement(monthKey),
+    ]);
+    return { monthKey, fingerprints: new Set(quotes.map(getQuoteFingerprint)) };
+  });
+  runtimeMonthPools.forEach((current, index) => {
+    const previous = runtimeMonthPools[index - 1];
+    if (!previous) return;
+    const duplicates = [...current.fingerprints].filter((fingerprint) => previous.fingerprints.has(fingerprint));
+    if (duplicates.length) console.error(`${current.monthKey} 与 ${previous.monthKey} 的运行时保护池存在跨月重复。`);
+  });
+
   const todayPool = getDailyQuotePool().quotes;
   if (todayPool.length < CONFIG.minimumDailyQuotePoolSize) {
     console.error(
@@ -404,7 +459,7 @@ function initializeInteractions() {
   });
   document.querySelector("#countdownForm").addEventListener("submit", (event) => {
     event.preventDefault();
-    if (countdowns.length >= 3) {
+    if (countdowns.length >= 3 && !editingCountdownId) {
       document.querySelector("#countdownNameInput").setCustomValidity("最多只能添加三个倒计时");
       document.querySelector("#countdownNameInput").reportValidity();
       return;
@@ -412,14 +467,21 @@ function initializeInteractions() {
     const name = document.querySelector("#countdownNameInput").value.trim();
     const date = document.querySelector("#countdownDateInput").value;
     if (!name || !date) return;
-    const newCountdown = { id: `custom-${Date.now()}`, name, date };
-    countdowns.push(newCountdown);
+    if (editingCountdownId) {
+      const countdown = countdowns.find((item) => item.id === editingCountdownId);
+      if (countdown) {
+        countdown.name = name;
+        countdown.date = date;
+      }
+    } else {
+      countdowns.push({ id: `custom-${Date.now()}`, name, date });
+    }
     saveCountdowns();
-    event.target.reset();
     document.querySelector("#countdownNameInput").setCustomValidity("");
-    renderManageList();
+    stopEditingCountdown();
     updateCountdown();
   });
+  document.querySelector("#cancelEditButton").addEventListener("click", stopEditingCountdown);
   document.querySelector("#countdownNameInput").addEventListener("input", (event) => {
     event.target.setCustomValidity("");
   });
