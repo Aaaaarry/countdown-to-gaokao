@@ -21,13 +21,16 @@
       <header class="site-header">
         <a class="brand" href="#" aria-label="返回首页">
           <span class="brand-mark" aria-hidden="true">
-            <svg viewBox="0 0 24 24"><path d="M6 17.5 12 4l6 13.5-6-3-6 3Z"></path></svg>
+            <svg viewBox="0 0 24 24"><path d="m3.5 10.5 17-7-6.8 17-3.3-6.9-6.9-3.1Zm6.9 3.1L20.5 3.5"></path></svg>
           </span>
           <span>向光而行</span>
         </a>
+        <p class="header-slogan">每一天，都在靠近想去的地方</p>
         <div class="today" aria-label="今天的日期">
-          <span class="today-dot" aria-hidden="true"></span>
           <span id="todayText">正在获取日期...</span>
+          <span class="calendar-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24"><path d="M7 3v3m10-3v3M4 9h16M5 5h14a1 1 0 0 1 1 1v14H4V6a1 1 0 0 1 1-1Zm3 8h2m4 0h2m-8 4h2m4 0h2"></path></svg>
+          </span>
         </div>
       </header>
 
@@ -56,9 +59,10 @@
       <main>
         <section class="countdown-card" aria-labelledby="countdownSectionTitle">
           <div class="countdown-card-heading">
-            <p id="countdownSectionTitle" class="eyebrow"><span aria-hidden="true">✦</span> 每一天，都在靠近想去的地方</p>
+            <h1 id="countdownSectionTitle" class="visually-hidden">日期倒计时</h1>
             <button id="manageCountdownButton" class="manage-countdown-button" type="button">
-              <span aria-hidden="true">＋</span> 管理倒计时
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8Zm0-5v2m0 14v2M3 12h2m14 0h2M5.6 5.6 7 7m10 10 1.4 1.4m0-12.8L17 7M7 17l-1.4 1.4"></path></svg>
+              管理倒计时
             </button>
           </div>
           <div id="countdownList" class="countdown-list" aria-live="polite"></div>
@@ -66,9 +70,7 @@
 
         <section class="quote-card" aria-labelledby="quoteLabel">
           <div class="quote-topline">
-            <p id="quoteLabel" class="quote-label">
-              <span class="quote-label-icon" aria-hidden="true">“</span> 此刻读到
-            </p>
+            <p id="quoteLabel" class="quote-label">此刻读到</p>
             <button id="nextQuoteButton" class="next-quote-button" type="button">
               <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11a8.1 8.1 0 0 0-15.5-3M4 4v4h4M4 13a8.1 8.1 0 0 0 15.5 3m.5 4v-4h-4"></path></svg>
               换一句
@@ -76,6 +78,7 @@
           </div>
 
           <div id="quoteContent" class="quote-content" aria-live="polite">
+            <span class="large-quote-mark" aria-hidden="true">“</span>
             <blockquote id="quoteText">正在准备今天的句子...</blockquote>
             <p id="quoteTranslation" class="quote-translation" hidden></p>
             <div class="quote-attribution">
@@ -83,18 +86,19 @@
               <p id="quoteSourceBio" class="quote-source-bio" hidden></p>
             </div>
           </div>
-
-          <div class="quote-footer">
-            <span id="quoteCounter">01 / 01</span>
-            <span class="quote-line" aria-hidden="true"></span>
-            <span id="refreshHint">每 5 分钟自动更新</span>
+          <div class="botanical-decoration" aria-hidden="true">
+            <span class="stem"></span>
+            <i class="leaf leaf-one"></i><i class="leaf leaf-two"></i><i class="leaf leaf-three"></i>
+            <i class="leaf leaf-four"></i><i class="leaf leaf-five"></i><i class="leaf leaf-six"></i>
           </div>
+          <span id="quoteCounter" class="visually-hidden">01 / 01</span>
+          <span id="refreshHint" class="visually-hidden">每 5 分钟自动更新</span>
         </section>
       </main>
 
       <footer>
-        <p>不必着急成为答案，先认真写好今天。</p>
-        <span id="currentYear"></span>
+        <p><span aria-hidden="true">❧</span> 愿你以渺小启程，以伟大结束。 <span aria-hidden="true">❧</span></p>
+        <span id="currentYear" class="visually-hidden"></span>
       </footer>
     </div>
 
