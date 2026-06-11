@@ -234,11 +234,9 @@ function getDailyQuotePool(date = new Date()) {
     return { monthKey, weekday, quotes: monthLibrary[weekday] };
   }
 
-  // 纯前端无法自动获得未来内容；缺少当月库时，临时使用最近配置月份。
-  const availableMonths = Object.keys(MONTHLY_QUOTE_LIBRARIES).sort();
-  const fallbackMonth = availableMonths.filter((key) => key <= monthKey).at(-1) || availableMonths.at(-1);
-  console.warn(`未找到 ${monthKey} 月度句子库，暂时使用 ${fallbackMonth}。请在 quotes-data.js 添加新月份。`);
-  return { monthKey: fallbackMonth, weekday, quotes: MONTHLY_QUOTE_LIBRARIES[fallbackMonth][weekday] };
+  // 缺少当月库时使用独立应急库，绝不回退并重复上个月内容。
+  console.warn(`未找到 ${monthKey} 月度句子库，正在使用独立应急库。请在 quotes-data.js 添加新月份。`);
+  return { monthKey: "emergency", weekday, quotes: EMERGENCY_QUOTE_LIBRARY[weekday] };
 }
 
 function getDailyQuoteHistory(date = new Date()) {
@@ -278,13 +276,16 @@ function getNextQuoteIndex(date = new Date()) {
 function displayQuote(index, animate = true, date = new Date()) {
   const content = document.querySelector("#quoteContent");
   const { quotes } = getDailyQuotePool(date);
-  const quote = quotes[index];
+  const quote = quotes[index] || quotes[0];
+  if (!quote) return;
   const render = () => {
     document.querySelector("#quoteText").textContent = quote.text;
     const translation = document.querySelector("#quoteTranslation");
     translation.textContent = quote.translation || "";
     translation.hidden = !quote.translation;
-    document.querySelector("#quoteSource").textContent = `— ${quote.source}`;
+    const source = document.querySelector("#quoteSource");
+    source.textContent = quote.source ? `— ${quote.source}` : "";
+    source.hidden = !quote.source;
     const bio = document.querySelector("#quoteSourceBio");
     bio.textContent = quote.bio || "";
     bio.hidden = !quote.bio;
@@ -307,9 +308,16 @@ function validateMonthlyQuoteLibraries() {
   const months = Object.keys(MONTHLY_QUOTE_LIBRARIES).sort();
   months.forEach((monthKey, monthIndex) => {
     const library = MONTHLY_QUOTE_LIBRARIES[monthKey];
-    const allTexts = Object.values(library).flat().map((quote) => quote.text.trim());
+    const allQuotes = Object.values(library).flat();
+    const allTexts = allQuotes.map((quote) => quote.text.trim());
     const duplicatesInsideMonth = allTexts.filter((text, index) => allTexts.indexOf(text) !== index);
     if (duplicatesInsideMonth.length) console.warn(`${monthKey} 月度句子库存在重复句子：`, duplicatesInsideMonth);
+    allQuotes.forEach((quote) => {
+      const containsEnglish = /[A-Za-z]{3,}/.test(quote.text);
+      if (containsEnglish && (!quote.translation || !quote.source || !quote.bio)) {
+        console.warn(`${monthKey} 英文句子缺少翻译、作者中文名或简介：`, quote);
+      }
+    });
 
     for (let weekday = 0; weekday <= 6; weekday += 1) {
       if (!Array.isArray(library[weekday])) console.warn(`${monthKey} 缺少星期 ${weekday} 的句子数组。`);
@@ -325,6 +333,15 @@ function validateMonthlyQuoteLibraries() {
       if (crossMonthDuplicates.length) console.warn(`${monthKey} 与 ${previousMonth} 存在跨月重复：`, crossMonthDuplicates);
     }
   });
+
+  const monthlyTexts = new Set(
+    months.flatMap((monthKey) =>
+      Object.values(MONTHLY_QUOTE_LIBRARIES[monthKey]).flat().map((quote) => quote.text.trim())
+    )
+  );
+  const emergencyTexts = Object.values(EMERGENCY_QUOTE_LIBRARY).flat().map((quote) => quote.text.trim());
+  const emergencyDuplicates = emergencyTexts.filter((text) => monthlyTexts.has(text));
+  if (emergencyDuplicates.length) console.warn("应急句子库与月度库存在重复：", emergencyDuplicates);
 }
 
 function initializeInteractions() {
