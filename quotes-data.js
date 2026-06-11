@@ -165,3 +165,29 @@ MONTHLY_QUOTE_LIBRARIES["2026-07"][4][1] = {
   source: "Theodore Roosevelt · 西奥多·罗斯福",
   bio: "美国第26任总统",
 };
+
+/*
+ * 为每条内容补充审核字段。正式内容入库时建议直接填写这些字段。
+ * uncertain 表示正式使用前仍需人工核实出处、版权或翻译。
+ */
+Object.entries(MONTHLY_QUOTE_LIBRARIES).forEach(([monthKey, monthLibrary]) => {
+  Object.entries(monthLibrary).forEach(([weekday, quotes]) => {
+    quotes.forEach((quote, index) => {
+      quote.id ||= `${monthKey}-${weekday}-${String(index + 1).padStart(3, "0")}`;
+      quote.author ||= quote.source === "今日寄语" ? "" : quote.source || "";
+      quote.copyrightStatus ||= quote.source === "今日寄语" ? "original" : "uncertain";
+      quote.reviewer ||= "";
+      quote.reviewedAt ||= "";
+    });
+  });
+});
+
+Object.entries(EMERGENCY_QUOTE_LIBRARY).forEach(([weekday, quotes]) => {
+  quotes.forEach((quote, index) => {
+    quote.id ||= `emergency-${weekday}-${String(index + 1).padStart(3, "0")}`;
+    quote.author ||= quote.source === "今日寄语" ? "" : quote.source || "";
+    quote.copyrightStatus ||= quote.source === "今日寄语" ? "original" : "uncertain";
+    quote.reviewer ||= "";
+    quote.reviewedAt ||= "";
+  });
+});
