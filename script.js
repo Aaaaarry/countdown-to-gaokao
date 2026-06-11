@@ -7,6 +7,7 @@ const CONFIG = {
   defaultCountdowns: [
     { id: "gaokao", name: "高考", date: "2027-06-07" },
     { id: "first-exam", name: "首考", date: "2027-01-06" },
+    { id: "city-exam", name: "市统测", date: "2026-09-01" },
   ],
   quoteRefreshInterval: 5 * 60 * 1000,
   quoteNoRepeatWindow: 4 * 60 * 60 * 1000,
@@ -78,30 +79,33 @@ const QUOTES = [
 
 const STORAGE_KEYS = {
   countdowns: "toward-light-countdowns",
-  activeCountdown: "toward-light-active-countdown",
   quoteHistory: "toward-light-quote-history",
 };
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
 let countdowns = loadCountdowns();
-let activeCountdownId = localStorage.getItem(STORAGE_KEYS.activeCountdown) || countdowns[0].id;
-if (!countdowns.some((item) => item.id === activeCountdownId)) {
-  activeCountdownId = countdowns[0].id;
-}
 let currentQuoteIndex = -1;
 let quoteTimer;
 
 function loadCountdowns() {
   try {
     const saved = JSON.parse(localStorage.getItem(STORAGE_KEYS.countdowns));
-    if (Array.isArray(saved) && saved.length) return saved;
+    if (Array.isArray(saved) && saved.length) {
+      const isOldDefaultSet =
+        saved.length === 2 &&
+        saved.some((item) => item.id === "gaokao") &&
+        saved.some((item) => item.id === "first-exam");
+      if (isOldDefaultSet) {
+        return [...saved, { ...CONFIG.defaultCountdowns[2] }];
+      }
+      return saved.slice(0, 3);
+    }
   } catch {}
   return CONFIG.defaultCountdowns.map((item) => ({ ...item }));
 }
 
 function saveCountdowns() {
   localStorage.setItem(STORAGE_KEYS.countdowns, JSON.stringify(countdowns));
-  localStorage.setItem(STORAGE_KEYS.activeCountdown, activeCountdownId);
 }
 
 function parseDate(dateString) {
@@ -123,43 +127,40 @@ function formatToday(date) {
   return new Intl.DateTimeFormat("zh-CN", { month: "long", day: "numeric", weekday: "long" }).format(date);
 }
 
-function getActiveCountdown() {
-  return countdowns.find((item) => item.id === activeCountdownId) || countdowns[0];
-}
-
-function renderCountdownTabs() {
-  const tabs = document.querySelector("#countdownTabs");
-  tabs.innerHTML = "";
-  countdowns.forEach((countdown) => {
-    const button = document.createElement("button");
-    button.type = "button";
-    button.className = `countdown-tab${countdown.id === activeCountdownId ? " is-active" : ""}`;
-    button.textContent = countdown.name;
-    button.addEventListener("click", () => {
-      activeCountdownId = countdown.id;
-      saveCountdowns();
-      renderCountdownTabs();
-      updateCountdown();
-    });
-    tabs.appendChild(button);
-  });
-}
-
 function renderManageList() {
   const list = document.querySelector("#countdownManageList");
+  const form = document.querySelector("#countdownForm");
+  const isFull = countdowns.length >= 3;
+  form.querySelectorAll("input, .add-countdown-button").forEach((element) => {
+    element.disabled = isFull;
+  });
+  form.classList.toggle("is-disabled", isFull);
+  document.querySelector("#countdownNameInput").placeholder =
+    isFull ? "已达到三个倒计时上限" : "例如：期末考试";
   list.innerHTML = "";
   countdowns.forEach((countdown) => {
     const row = document.createElement("div");
     row.className = "countdown-manage-item";
-    row.innerHTML = `<span><strong></strong><small></small></span><button type="button">删除</button>`;
+    row.innerHTML = `
+      <span><strong></strong><small></small></span>
+      <div class="manage-item-actions">
+        <button class="move-button move-up" type="button" aria-label="上移">↑</button>
+        <button class="move-button move-down" type="button" aria-label="下移">↓</button>
+        <button class="delete-button" type="button">删除</button>
+      </div>`;
     row.querySelector("strong").textContent = countdown.name;
     row.querySelector("small").textContent = formatDate(parseDate(countdown.date));
-    row.querySelector("button").disabled = countdowns.length === 1;
-    row.querySelector("button").addEventListener("click", () => {
+    const index = countdowns.findIndex((item) => item.id === countdown.id);
+    const upButton = row.querySelector(".move-up");
+    const downButton = row.querySelector(".move-down");
+    upButton.disabled = index === 0;
+    downButton.disabled = index === countdowns.length - 1;
+    upButton.addEventListener("click", () => moveCountdown(index, index - 1));
+    downButton.addEventListener("click", () => moveCountdown(index, index + 1));
+    row.querySelector(".delete-button").disabled = countdowns.length === 1;
+    row.querySelector(".delete-button").addEventListener("click", () => {
       countdowns = countdowns.filter((item) => item.id !== countdown.id);
-      if (activeCountdownId === countdown.id) activeCountdownId = countdowns[0].id;
       saveCountdowns();
-      renderCountdownTabs();
       renderManageList();
       updateCountdown();
     });
@@ -167,33 +168,44 @@ function renderManageList() {
   });
 }
 
+function moveCountdown(fromIndex, toIndex) {
+  if (toIndex < 0 || toIndex >= countdowns.length) return;
+  const [item] = countdowns.splice(fromIndex, 1);
+  countdowns.splice(toIndex, 0, item);
+  saveCountdowns();
+  renderManageList();
+  updateCountdown();
+}
+
 function updateCountdown() {
   const today = new Date();
-  const active = getActiveCountdown();
-  const targetDate = parseDate(active.date);
-  const daysRemaining = calendarDayDifference(targetDate, today);
-  const journeyStart = new Date(targetDate);
-  journeyStart.setFullYear(targetDate.getFullYear() - 1);
-
-  document.querySelector("#countdownTitle").textContent = daysRemaining > 0 ? `距离${active.name}还有` : active.name;
-  document.querySelector("#daysRemaining").textContent = Math.max(daysRemaining, 0);
-  document.querySelector("#targetDateText").textContent = formatDate(targetDate);
   document.querySelector("#todayText").textContent = formatToday(today);
   document.querySelector("#currentYear").textContent = `© ${today.getFullYear()}`;
+  const list = document.querySelector("#countdownList");
+  list.innerHTML = "";
 
-  const message = document.querySelector("#countdownMessage");
-  if (daysRemaining > 100) message.textContent = "沉住气，慢慢来。你的每一步都算数。";
-  else if (daysRemaining > 30) message.textContent = "方向明确，节奏稳定，把今天过得扎实。";
-  else if (daysRemaining > 0) message.textContent = "相信已经认真走过的路，也相信此刻的自己。";
-  else if (daysRemaining === 0) message.textContent = "今天，带着从容和勇气去完成这一场奔赴。";
-  else message.textContent = "这个日子已经抵达，愿你继续走向新的远方。";
-
-  const totalDays = Math.max(calendarDayDifference(targetDate, journeyStart), 1);
-  const completedDays = calendarDayDifference(today, journeyStart);
-  const progress = Math.min(Math.max((completedDays / totalDays) * 100, 0), 100);
-  document.querySelector("#progressText").textContent = `${Math.round(progress)}%`;
-  document.querySelector("#progressBar").style.width = `${progress}%`;
-  document.querySelector(".progress-track").setAttribute("aria-valuenow", Math.round(progress));
+  countdowns.slice(0, 3).forEach((countdown, index) => {
+    const targetDate = parseDate(countdown.date);
+    const daysRemaining = calendarDayDifference(targetDate, today);
+    const item = document.createElement("article");
+    item.className = `countdown-item${index === 0 ? " is-primary" : ""}`;
+    item.innerHTML = `
+      <div class="countdown-order" aria-hidden="true">
+        <span></span><span></span><span></span>
+      </div>
+      <div class="countdown-item-copy">
+        <h2></h2>
+        <div class="countdown-value">
+          <strong></strong><span>天</span>
+        </div>
+        <p class="countdown-date"></p>
+      </div>`;
+    item.querySelector("h2").textContent = daysRemaining > 0 ? `距离${countdown.name}还有` : countdown.name;
+    item.querySelector("strong").textContent = Math.max(daysRemaining, 0);
+    item.querySelector(".countdown-date").textContent =
+      daysRemaining < 0 ? `${formatDate(targetDate)} · 已抵达` : formatDate(targetDate);
+    list.appendChild(item);
+  });
 }
 
 function getQuoteHistory() {
@@ -244,7 +256,6 @@ function resetQuoteTimer() {
 }
 
 function initializeInteractions() {
-  renderCountdownTabs();
   renderManageList();
 
   const manager = document.querySelector("#countdownManager");
@@ -256,17 +267,24 @@ function initializeInteractions() {
   });
   document.querySelector("#countdownForm").addEventListener("submit", (event) => {
     event.preventDefault();
+    if (countdowns.length >= 3) {
+      document.querySelector("#countdownNameInput").setCustomValidity("最多只能添加三个倒计时");
+      document.querySelector("#countdownNameInput").reportValidity();
+      return;
+    }
     const name = document.querySelector("#countdownNameInput").value.trim();
     const date = document.querySelector("#countdownDateInput").value;
     if (!name || !date) return;
     const newCountdown = { id: `custom-${Date.now()}`, name, date };
     countdowns.push(newCountdown);
-    activeCountdownId = newCountdown.id;
     saveCountdowns();
     event.target.reset();
-    renderCountdownTabs();
+    document.querySelector("#countdownNameInput").setCustomValidity("");
     renderManageList();
     updateCountdown();
+  });
+  document.querySelector("#countdownNameInput").addEventListener("input", (event) => {
+    event.target.setCustomValidity("");
   });
 
   displayQuote(getNextQuoteIndex(), false);
