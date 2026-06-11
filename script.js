@@ -10,11 +10,10 @@ const CONFIG = {
     { id: "city-exam", name: "市统测", date: "2026-09-01" },
   ],
   quoteRefreshInterval: 5 * 60 * 1000,
-  quoteNoRepeatWindow: 4 * 60 * 60 * 1000,
 };
 
-// 共有 60 条。每 5 分钟切换时，至少可连续 5 小时不重复。
-const QUOTES = [
+// 旧版通用句子，仅保留作内容备份；当前页面使用 quotes-data.js 的月度句子库。
+const LEGACY_QUOTES = [
   { text: "你的职责是平整土地，而非焦虑时光。你做三四月的事，在八九月自有答案。", source: "余世存", bio: "中国作家" },
   { text: "愿你有前进一寸的勇气，亦有后退一尺的从容。", source: "生活札记" },
   { text: "去发光，而不是被照亮。", source: "今日寄语" },
@@ -79,12 +78,13 @@ const QUOTES = [
 
 const STORAGE_KEYS = {
   countdowns: "toward-light-countdowns",
-  quoteHistory: "toward-light-quote-history",
+  dailyQuoteHistory: "toward-light-daily-quote-history",
 };
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
 let countdowns = loadCountdowns();
 let currentQuoteIndex = -1;
+let currentQuoteDateKey = getLocalDateKey();
 let quoteTimer;
 
 function loadCountdowns() {
@@ -214,30 +214,71 @@ function updateCountdown() {
   });
 }
 
-function getQuoteHistory() {
-  try {
-    const history = JSON.parse(localStorage.getItem(STORAGE_KEYS.quoteHistory)) || [];
-    const cutoff = Date.now() - CONFIG.quoteNoRepeatWindow;
-    return history.filter((entry) => entry.time > cutoff && entry.index < QUOTES.length);
-  } catch {
-    return [];
-  }
+function getLocalDateKey(date = new Date()) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
 }
 
-function getNextQuoteIndex() {
-  const history = getQuoteHistory();
-  const used = new Set(history.map((entry) => entry.index));
-  let available = QUOTES.map((_, index) => index).filter((index) => !used.has(index));
-  if (!available.length) available = QUOTES.map((_, index) => index).filter((index) => index !== currentQuoteIndex);
+function getMonthKey(date = new Date()) {
+  return getLocalDateKey(date).slice(0, 7);
+}
+
+function getDailyQuotePool(date = new Date()) {
+  const monthKey = getMonthKey(date);
+  const weekday = date.getDay();
+  const monthLibrary = MONTHLY_QUOTE_LIBRARIES[monthKey];
+
+  if (monthLibrary?.[weekday]?.length) {
+    return { monthKey, weekday, quotes: monthLibrary[weekday] };
+  }
+
+  // 纯前端无法自动获得未来内容；缺少当月库时，临时使用最近配置月份。
+  const availableMonths = Object.keys(MONTHLY_QUOTE_LIBRARIES).sort();
+  const fallbackMonth = availableMonths.filter((key) => key <= monthKey).at(-1) || availableMonths.at(-1);
+  console.warn(`未找到 ${monthKey} 月度句子库，暂时使用 ${fallbackMonth}。请在 quotes-data.js 添加新月份。`);
+  return { monthKey: fallbackMonth, weekday, quotes: MONTHLY_QUOTE_LIBRARIES[fallbackMonth][weekday] };
+}
+
+function getDailyQuoteHistory(date = new Date()) {
+  const todayKey = getLocalDateKey(date);
+  try {
+    const saved = JSON.parse(localStorage.getItem(STORAGE_KEYS.dailyQuoteHistory));
+    if (saved?.dateKey === todayKey && Array.isArray(saved.shownIndexes)) return saved.shownIndexes;
+  } catch {}
+  localStorage.setItem(
+    STORAGE_KEYS.dailyQuoteHistory,
+    JSON.stringify({ dateKey: todayKey, shownIndexes: [] })
+  );
+  return [];
+}
+
+function getNextQuoteIndex(date = new Date()) {
+  const { quotes } = getDailyQuotePool(date);
+  let shownIndexes = getDailyQuoteHistory(date).filter((index) => index < quotes.length);
+  let available = quotes.map((_, index) => index).filter((index) => !shownIndexes.includes(index));
+
+  // 当天全部展示完毕后开启新一轮，仍避免立即重复当前句子。
+  if (!available.length) {
+    shownIndexes = [];
+    available = quotes.map((_, index) => index).filter((index) => index !== currentQuoteIndex);
+    if (!available.length) available = [0];
+  }
+
   const index = available[Math.floor(Math.random() * available.length)];
-  history.push({ index, time: Date.now() });
-  localStorage.setItem(STORAGE_KEYS.quoteHistory, JSON.stringify(history));
+  shownIndexes.push(index);
+  localStorage.setItem(
+    STORAGE_KEYS.dailyQuoteHistory,
+    JSON.stringify({ dateKey: getLocalDateKey(date), shownIndexes })
+  );
   return index;
 }
 
-function displayQuote(index, animate = true) {
+function displayQuote(index, animate = true, date = new Date()) {
   const content = document.querySelector("#quoteContent");
-  const quote = QUOTES[index];
+  const { quotes } = getDailyQuotePool(date);
+  const quote = quotes[index];
   const render = () => {
     document.querySelector("#quoteText").textContent = quote.text;
     const translation = document.querySelector("#quoteTranslation");
@@ -247,8 +288,9 @@ function displayQuote(index, animate = true) {
     const bio = document.querySelector("#quoteSourceBio");
     bio.textContent = quote.bio || "";
     bio.hidden = !quote.bio;
-    document.querySelector("#quoteCounter").textContent = `${String(index + 1).padStart(2, "0")} / ${String(QUOTES.length).padStart(2, "0")}`;
+    document.querySelector("#quoteCounter").textContent = `${String(index + 1).padStart(2, "0")} / ${String(quotes.length).padStart(2, "0")}`;
     currentQuoteIndex = index;
+    currentQuoteDateKey = getLocalDateKey(date);
     content.classList.remove("is-changing");
   };
   if (!animate) return render();
@@ -261,7 +303,32 @@ function resetQuoteTimer() {
   quoteTimer = window.setInterval(() => displayQuote(getNextQuoteIndex()), CONFIG.quoteRefreshInterval);
 }
 
+function validateMonthlyQuoteLibraries() {
+  const months = Object.keys(MONTHLY_QUOTE_LIBRARIES).sort();
+  months.forEach((monthKey, monthIndex) => {
+    const library = MONTHLY_QUOTE_LIBRARIES[monthKey];
+    const allTexts = Object.values(library).flat().map((quote) => quote.text.trim());
+    const duplicatesInsideMonth = allTexts.filter((text, index) => allTexts.indexOf(text) !== index);
+    if (duplicatesInsideMonth.length) console.warn(`${monthKey} 月度句子库存在重复句子：`, duplicatesInsideMonth);
+
+    for (let weekday = 0; weekday <= 6; weekday += 1) {
+      if (!Array.isArray(library[weekday])) console.warn(`${monthKey} 缺少星期 ${weekday} 的句子数组。`);
+      if ((library[weekday]?.length || 0) < 100) {
+        console.info(`${monthKey} 星期 ${weekday} 当前有 ${library[weekday]?.length || 0} 条示例，正式库建议扩充到 100 条。`);
+      }
+    }
+
+    const previousMonth = months[monthIndex - 1];
+    if (previousMonth) {
+      const previousTexts = new Set(Object.values(MONTHLY_QUOTE_LIBRARIES[previousMonth]).flat().map((quote) => quote.text.trim()));
+      const crossMonthDuplicates = allTexts.filter((text) => previousTexts.has(text));
+      if (crossMonthDuplicates.length) console.warn(`${monthKey} 与 ${previousMonth} 存在跨月重复：`, crossMonthDuplicates);
+    }
+  });
+}
+
 function initializeInteractions() {
+  validateMonthlyQuoteLibraries();
   renderManageList();
 
   const manager = document.querySelector("#countdownManager");
@@ -303,4 +370,10 @@ function initializeInteractions() {
 
 updateCountdown();
 initializeInteractions();
-window.setInterval(updateCountdown, 60 * 1000);
+window.setInterval(() => {
+  updateCountdown();
+  if (getLocalDateKey() !== currentQuoteDateKey) {
+    displayQuote(getNextQuoteIndex());
+    resetQuoteTimer();
+  }
+}, 60 * 1000);
