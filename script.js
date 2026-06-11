@@ -124,7 +124,13 @@ function formatDate(date) {
 }
 
 function formatToday(date) {
-  return new Intl.DateTimeFormat("zh-CN", { month: "long", day: "numeric", weekday: "long" }).format(date);
+  const dateText = new Intl.DateTimeFormat("zh-CN", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  }).format(date);
+  const weekday = new Intl.DateTimeFormat("zh-CN", { weekday: "long" }).format(date);
+  return `${dateText}  ${weekday}`;
 }
 
 function renderManageList() {
