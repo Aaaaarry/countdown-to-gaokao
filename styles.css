@@ -28,7 +28,7 @@ body {
     radial-gradient(circle at 99% 56%, transparent 0 52px, rgba(191, 202, 157, 0.32) 53px 55px, transparent 56px),
     radial-gradient(circle at -2% 91%, transparent 0 74px, rgba(191, 202, 157, 0.35) 75px 77px, transparent 78px),
     var(--cream);
-  font-family: "Noto Sans SC", "Microsoft YaHei", sans-serif;
+  font-family: "Microsoft YaHei", "PingFang SC", "Hiragino Sans GB", Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
 }
 
@@ -115,11 +115,27 @@ input {
   stroke-width: 1.1;
 }
 
+.header-copy {
+  display: grid;
+  gap: 5px;
+}
+
+.header-title,
 .header-slogan {
   margin: 0;
+  font-family: "Songti SC", STSong, SimSun, serif;
+}
+
+.header-title {
+  color: var(--green-deep);
+  font-size: 17px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+}
+
+.header-slogan {
   color: #88847b;
-  font-family: "Noto Serif SC", "Songti SC", SimSun, serif;
-  font-size: 19px;
+  font-size: 13px;
   letter-spacing: 0.14em;
 }
 
@@ -427,6 +443,28 @@ blockquote {
   font-size: 11px;
 }
 
+.quote-status {
+  position: absolute;
+  z-index: 3;
+  left: 40px;
+  right: 40px;
+  bottom: 25px;
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  justify-content: space-between;
+  color: rgba(255, 255, 255, 0.56);
+  font-size: 10px;
+  letter-spacing: 0.04em;
+}
+
+.demo-badge {
+  padding: 4px 7px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
 .botanical-decoration {
   position: absolute;
   z-index: 1;
@@ -543,6 +581,27 @@ blockquote {
   cursor: pointer;
 }
 
+.form-actions {
+  display: flex;
+  gap: 7px;
+  align-self: end;
+}
+
+.cancel-edit-button {
+  padding: 10px 13px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  color: var(--ink-soft);
+  background: white;
+  cursor: pointer;
+}
+
+.manager-hint {
+  margin: 10px 0 0;
+  color: #9b645c;
+  font-size: 11px;
+}
+
 .countdown-form.is-disabled {
   opacity: 0.48;
 }
@@ -590,6 +649,10 @@ blockquote {
   cursor: pointer;
 }
 
+.countdown-manage-item .edit-button {
+  color: #836d3d;
+}
+
 footer {
   display: flex;
   justify-content: center;
@@ -601,6 +664,10 @@ footer {
   letter-spacing: 0.22em;
 }
 
+footer div {
+  text-align: center;
+}
+
 footer p {
   margin: 0;
 }
@@ -609,9 +676,18 @@ footer span {
   color: #c6cda6;
 }
 
+footer small {
+  display: block;
+  margin-top: 10px;
+  color: #aaa79e;
+  font-family: "Microsoft YaHei", "PingFang SC", sans-serif;
+  font-size: 9px;
+  letter-spacing: 0.04em;
+}
+
 @media (max-width: 1100px) {
   .page-shell {
-    width: min(100% - 36px, 1440px);
+    width: min(calc(100% - 36px), 1440px);
   }
 
   .site-header {
@@ -628,7 +704,7 @@ footer span {
     height: 48px;
   }
 
-  .header-slogan {
+  .header-copy {
     display: none;
   }
 
@@ -639,17 +715,17 @@ footer span {
   .countdown-card,
   .quote-card {
     height: auto;
-    min-height: 650px;
+    min-height: auto;
   }
 
   .quote-card {
-    min-height: 560px;
+    min-height: clamp(460px, 72vh, 560px);
   }
 }
 
 @media (max-width: 700px) {
   .page-shell {
-    width: min(100% - 24px, 1440px);
+    width: calc(100% - 24px);
     max-width: calc(100vw - 24px);
   }
 
@@ -695,7 +771,7 @@ footer span {
   .countdown-card {
     width: calc(100vw - 24px);
     max-width: calc(100vw - 24px);
-    min-height: 650px;
+    min-height: auto;
     padding: 82px 24px 25px;
     border-radius: 22px;
   }
@@ -718,6 +794,7 @@ footer span {
     display: block;
     min-width: 0;
     padding: 28px 0 28px 28px;
+    min-height: 155px;
   }
 
   .countdown-item-copy {
@@ -774,7 +851,7 @@ footer span {
   .quote-card {
     width: calc(100vw - 24px);
     max-width: calc(100vw - 24px);
-    min-height: 600px;
+    min-height: clamp(430px, 72vh, 540px);
     padding: 28px 26px;
     border-radius: 22px;
   }
@@ -796,6 +873,24 @@ footer span {
   .countdown-manage-list {
     display: grid;
     grid-template-columns: 1fr;
+  }
+
+  .form-actions {
+    align-self: stretch;
+  }
+
+  .form-actions button {
+    flex: 1;
+  }
+
+  .quote-status {
+    left: 26px;
+    right: 26px;
+    bottom: 20px;
+  }
+
+  .quote-status #refreshHint {
+    max-width: 190px;
   }
 
   footer {
