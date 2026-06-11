@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>向光而行 · 完整句子库</title>
+    <style>
+      :root {
+        --green: #174f38;
+        --cream: #faf8f1;
+        --paper: #fffef9;
+        --line: #e5dfd1;
+        --ink-soft: #77756d;
+      }
+
+      * { box-sizing: border-box; }
+
+      body {
+        margin: 0;
+        color: #16261f;
+        background: var(--cream);
+        font-family: "Microsoft YaHei", "PingFang SC", sans-serif;
+      }
+
+      main {
+        width: min(1100px, calc(100% - 32px));
+        margin: 40px auto 80px;
+      }
+
+      header,
+      section {
+        padding: 24px;
+        border: 1px solid var(--line);
+        border-radius: 18px;
+        background: var(--paper);
+      }
+
+      header { margin-bottom: 20px; }
+      h1, h2, p { margin-top: 0; }
+      h1, h2 { color: var(--green); }
+      h1 { margin-bottom: 10px; }
+      h2 { margin-bottom: 16px; }
+
+      .summary {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-top: 18px;
+      }
+
+      .summary span,
+      .tag {
+        padding: 5px 9px;
+        border-radius: 999px;
+        color: var(--green);
+        background: #edf0e5;
+        font-size: 12px;
+      }
+
+      section { margin-top: 18px; }
+
+      ol {
+        display: grid;
+        gap: 10px;
+        margin: 0;
+        padding-left: 30px;
+      }
+
+      li {
+        padding: 14px 16px;
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        background: #fff;
+        line-height: 1.7;
+      }
+
+      .quote-text { font-size: 16px; }
+      .translation { color: var(--green); }
+
+      .meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 7px;
+        color: var(--ink-soft);
+        font-size: 12px;
+      }
+
+      .weekday {
+        margin: 24px 0 10px;
+        color: var(--ink-soft);
+        font-size: 14px;
+      }
+
+      a { color: var(--green); }
+    </style>
+  </head>
+  <body>
+    <main>
+      <header>
+        <h1>网站现存完整句子库</h1>
+        <p>此页面直接读取网站当前数据，展示月度库、应急库和通用补充库中的全部原始记录。</p>
+        <p><a href="index.html">返回倒计时首页</a></p>
+        <div id="summary" class="summary"></div>
+      </header>
+      <div id="content"></div>
+    </main>
+
+    <script src="quotes-data.js"></script>
+    <script>
+      const WEEKDAYS = ["星期日", "星期一", "星期二", "星期三", "星期四", "星期五", "星期六"];
+
+      function quoteItem(quote, location) {
+        const item = document.createElement("li");
+        item.innerHTML = `
+          <div class="quote-text">${escapeHtml(quote.text)}</div>
+          ${quote.translation ? `<div class="translation">译文：${escapeHtml(quote.translation)}</div>` : ""}
+          <div class="meta">
+            <span class="tag">${escapeHtml(location)}</span>
+            <span>来源：${escapeHtml(quote.source || "未填写")}</span>
+            ${quote.bio ? `<span>简介：${escapeHtml(quote.bio)}</span>` : ""}
+          </div>
+        `;
+        return item;
+      }
+
+      function escapeHtml(text) {
+        return String(text).replace(/[&<>"']/g, (character) => ({
+          "&": "&amp;",
+          "<": "&lt;",
+          ">": "&gt;",
+          '"': "&quot;",
+          "'": "&#039;",
+        })[character]);
+      }
+
+      function renderSection(title, groups) {
+        const section = document.createElement("section");
+        section.innerHTML = `<h2>${escapeHtml(title)}</h2>`;
+        groups.forEach(({ label, quotes }) => {
+          const heading = document.createElement("h3");
+          heading.className = "weekday";
+          heading.textContent = `${label} · ${quotes.length} 条`;
+          const list = document.createElement("ol");
+          quotes.forEach((quote) => list.appendChild(quoteItem(quote, label)));
+          section.append(heading, list);
+        });
+        document.querySelector("#content").appendChild(section);
+      }
+
+      async function renderLegacyQuotes() {
+        const scriptText = await fetch("script.js").then((response) => response.text());
+        const arrayText = scriptText.match(/const LEGACY_QUOTES = (\[[\s\S]*?\n\]);/)?.[1];
+        const quotes = arrayText ? Function(`return ${arrayText}`)() : [];
+        renderSection("通用补充库", [{ label: "LEGACY_QUOTES", quotes }]);
+        return quotes.length;
+      }
+
+      async function render() {
+        let monthlyCount = 0;
+        const allQuotes = [];
+        Object.entries(MONTHLY_QUOTE_LIBRARIES).forEach(([month, library]) => {
+          const groups = Object.entries(library).map(([weekday, quotes]) => {
+            monthlyCount += quotes.length;
+            allQuotes.push(...quotes);
+            return { label: `${month} · ${WEEKDAYS[Number(weekday)]}`, quotes };
+          });
+          renderSection(`${month} 月度句子库`, groups);
+        });
+
+        let emergencyCount = 0;
+        const emergencyGroups = Object.entries(EMERGENCY_QUOTE_LIBRARY).map(([weekday, quotes]) => {
+          emergencyCount += quotes.length;
+          allQuotes.push(...quotes);
+          return { label: `应急库 · ${WEEKDAYS[Number(weekday)]}`, quotes };
+        });
+        renderSection("未配置月份应急库", emergencyGroups);
+
+        const legacyCount = await renderLegacyQuotes();
+        const uniqueCount = new Set(
+          [...document.querySelectorAll(".quote-text")].map((element) =>
+            element.textContent.normalize("NFKC").toLocaleLowerCase().replace(/[\p{P}\p{S}\s]+/gu, "")
+          )
+        ).size;
+        document.querySelector("#summary").innerHTML = `
+          <span>月度库：${monthlyCount} 条</span>
+          <span>应急库：${emergencyCount} 条</span>
+          <span>通用补充库：${legacyCount} 条</span>
+          <span>原始记录合计：${monthlyCount + emergencyCount + legacyCount} 条</span>
+          <span>规范化去重后：${uniqueCount} 条</span>
+        `;
+      }
+
+      render();
+    </script>
+  </body>
+</html>
