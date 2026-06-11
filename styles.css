@@ -115,28 +115,12 @@ input {
   stroke-width: 1.1;
 }
 
-.header-copy {
-  display: grid;
-  gap: 5px;
-}
-
-.header-title,
 .header-slogan {
   margin: 0;
   font-family: "Songti SC", STSong, SimSun, serif;
-}
-
-.header-title {
-  color: var(--green-deep);
-  font-size: 17px;
-  font-weight: 600;
-  letter-spacing: 0.08em;
-}
-
-.header-slogan {
   color: #88847b;
-  font-size: 13px;
-  letter-spacing: 0.14em;
+  font-size: 18px;
+  letter-spacing: 0.12em;
 }
 
 .today {
@@ -209,13 +193,13 @@ main {
   display: flex;
   gap: 10px;
   align-items: center;
-  padding: 12px 18px;
+  padding: 12px 28px;
   border: 1px solid var(--green);
   border-radius: 13px;
   color: var(--green-deep);
   background: rgba(255, 254, 249, 0.6);
   font-family: "Noto Serif SC", "Songti SC", SimSun, serif;
-  font-size: 17px;
+  font-size: 19px;
   cursor: pointer;
   transition: 180ms ease;
 }
@@ -245,6 +229,8 @@ main {
 }
 
 .countdown-order {
+  position: relative;
+  left: 10px;
   display: grid;
   grid-template-columns: repeat(2, 6px);
   gap: 6px;
@@ -268,6 +254,7 @@ main {
 
 .countdown-item-copy h2 {
   position: relative;
+  left: 10px;
   margin: 0;
   font-family: "Noto Serif SC", "Songti SC", SimSun, serif;
   font-size: clamp(22px, 2vw, 30px);
@@ -298,7 +285,7 @@ main {
   color: var(--green-deep);
   font-family: "Playfair Display", Georgia, serif;
   font-size: clamp(82px, 8vw, 118px);
-  font-weight: 600;
+  font-weight: 400;
   line-height: 0.9;
   letter-spacing: -0.04em;
 }
@@ -312,6 +299,7 @@ main {
 
 .countdown-date {
   position: relative;
+  left: 10px;
   margin: 0;
   padding-left: 34px;
   font-family: "Noto Serif SC", "Songti SC", SimSun, serif;
@@ -326,10 +314,8 @@ main {
   top: 50%;
   width: 22px;
   height: 22px;
-  color: var(--green);
-  content: "▦";
-  font-family: sans-serif;
-  font-size: 19px;
+  background: center / contain no-repeat url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23174f38' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M7 3v3m10-3v3M4 9h16M5 5h14a1 1 0 0 1 1 1v14H4V6a1 1 0 0 1 1-1Zm3 4v2m4-2v2m4-2v2m-8 4v2m4-2v2m4-2v2'/%3E%3C/svg%3E");
+  content: "";
   transform: translateY(-50%);
 }
 
@@ -443,42 +429,20 @@ blockquote {
   font-size: 11px;
 }
 
-.quote-status {
-  position: absolute;
-  z-index: 3;
-  left: 40px;
-  right: 40px;
-  bottom: 25px;
-  display: flex;
-  gap: 10px;
-  align-items: center;
-  justify-content: space-between;
-  color: rgba(255, 255, 255, 0.56);
-  font-size: 10px;
-  letter-spacing: 0.04em;
-}
-
-.demo-badge {
-  padding: 4px 7px;
-  border: 1px solid rgba(255, 255, 255, 0.16);
-  border-radius: 999px;
-  white-space: nowrap;
-}
-
 .botanical-decoration {
   position: absolute;
   z-index: 1;
   right: -16px;
   bottom: -2px;
-  width: 230px;
-  height: 310px;
-  opacity: 0.62;
+  width: 250px;
+  height: 330px;
+  opacity: 0.72;
 }
 
 .botanical-decoration::before {
   position: absolute;
   right: 5px;
-  bottom: -85px;
+  bottom: -15px;
   width: 240px;
   height: 240px;
   border: 2px solid rgba(211, 208, 137, 0.45);
@@ -491,7 +455,7 @@ blockquote {
   right: 68px;
   bottom: 0;
   width: 2px;
-  height: 285px;
+  height: 305px;
   background: rgba(212, 215, 151, 0.72);
   transform: rotate(17deg);
   transform-origin: bottom;
@@ -499,19 +463,19 @@ blockquote {
 
 .leaf {
   position: absolute;
-  width: 52px;
-  height: 22px;
+  width: 72px;
+  height: 29px;
   border: 1px solid rgba(237, 235, 177, 0.62);
   border-radius: 100% 0 100% 0;
   background: linear-gradient(135deg, rgba(218, 222, 159, 0.75), rgba(110, 145, 100, 0.2));
 }
 
-.leaf-one { right: 43px; bottom: 215px; transform: rotate(-42deg); }
-.leaf-two { right: 98px; bottom: 180px; transform: scaleX(-1) rotate(-35deg); }
-.leaf-three { right: 28px; bottom: 145px; transform: rotate(-30deg); }
-.leaf-four { right: 112px; bottom: 112px; transform: scaleX(-1) rotate(-30deg); }
-.leaf-five { right: 15px; bottom: 74px; transform: rotate(-24deg); }
-.leaf-six { right: 102px; bottom: 40px; transform: scaleX(-1) rotate(-22deg); }
+.leaf-one { right: 35px; bottom: 265px; transform: rotate(-42deg); }
+.leaf-two { right: 102px; bottom: 220px; transform: scaleX(-1) rotate(-35deg); }
+.leaf-three { right: 22px; bottom: 175px; transform: rotate(-30deg); }
+.leaf-four { right: 118px; bottom: 130px; transform: scaleX(-1) rotate(-30deg); }
+.leaf-five { right: 10px; bottom: 82px; transform: rotate(-24deg); }
+.leaf-six { right: 106px; bottom: 42px; transform: scaleX(-1) rotate(-22deg); }
 
 .countdown-manager {
   margin: 0 0 20px;
@@ -602,6 +566,12 @@ blockquote {
   font-size: 11px;
 }
 
+.manager-storage-note {
+  margin: 10px 0 0;
+  color: var(--ink-soft);
+  font-size: 10px;
+}
+
 .countdown-form.is-disabled {
   opacity: 0.48;
 }
@@ -664,25 +634,12 @@ footer {
   letter-spacing: 0.22em;
 }
 
-footer div {
-  text-align: center;
-}
-
 footer p {
   margin: 0;
 }
 
 footer span {
   color: #c6cda6;
-}
-
-footer small {
-  display: block;
-  margin-top: 10px;
-  color: #aaa79e;
-  font-family: "Microsoft YaHei", "PingFang SC", sans-serif;
-  font-size: 9px;
-  letter-spacing: 0.04em;
 }
 
 @media (max-width: 1100px) {
@@ -704,7 +661,7 @@ footer small {
     height: 48px;
   }
 
-  .header-copy {
+  .header-slogan {
     display: none;
   }
 
@@ -814,6 +771,7 @@ footer small {
   }
 
   .countdown-item-copy h2 {
+    left: 0;
     grid-column: 1 / -1;
     font-size: 18px;
   }
@@ -834,6 +792,7 @@ footer small {
   }
 
   .countdown-date {
+    left: 0;
     align-self: end;
     justify-self: end;
     margin-bottom: 9px;
@@ -881,16 +840,6 @@ footer small {
 
   .form-actions button {
     flex: 1;
-  }
-
-  .quote-status {
-    left: 26px;
-    right: 26px;
-    bottom: 20px;
-  }
-
-  .quote-status #refreshHint {
-    max-width: 190px;
   }
 
   footer {
