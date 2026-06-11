@@ -10,6 +10,8 @@ const CONFIG = {
     { id: "city-exam", name: "市统测", date: "2026-09-01" },
   ],
   quoteRefreshInterval: 5 * 60 * 1000,
+  // 包含页面初次展示：0 至 240 分钟共出现 49 次，保护池至少需要 49 条。
+  minimumDailyQuotePoolSize: 49,
 };
 
 // 旧版通用句子，仅保留作内容备份；当前页面使用 quotes-data.js 的月度句子库。
@@ -225,18 +227,54 @@ function getMonthKey(date = new Date()) {
   return getLocalDateKey(date).slice(0, 7);
 }
 
+function getQuoteFingerprint(quote) {
+  return quote.text.trim().toLocaleLowerCase();
+}
+
+function getUniqueQuotes(quotes) {
+  const seen = new Set();
+  return quotes.filter((quote) => {
+    const fingerprint = getQuoteFingerprint(quote);
+    if (!fingerprint || seen.has(fingerprint)) return false;
+    seen.add(fingerprint);
+    return true;
+  });
+}
+
+function getMonthSpecificSupplement(monthKey) {
+  const monthNumber = Number(monthKey.replace("-", ""));
+  const offset = (monthNumber * 24) % LEGACY_QUOTES.length;
+  return [...LEGACY_QUOTES.slice(offset), ...LEGACY_QUOTES.slice(0, offset)];
+}
+
 function getDailyQuotePool(date = new Date()) {
   const monthKey = getMonthKey(date);
   const weekday = date.getDay();
   const monthLibrary = MONTHLY_QUOTE_LIBRARIES[monthKey];
 
   if (monthLibrary?.[weekday]?.length) {
-    return { monthKey, weekday, quotes: monthLibrary[weekday] };
+    // 当天数组始终优先；示例数据不足 49 条时，从当月其他星期补足。
+    // 正式数据达到每天 100 条后，保护池只会使用当天数组。
+    const dailyQuotes = getUniqueQuotes(monthLibrary[weekday]);
+    const monthlySupplement = Object.entries(monthLibrary)
+      .filter(([day]) => Number(day) !== weekday)
+      .flatMap(([, quotes]) => quotes);
+    const quotes = getUniqueQuotes([
+      ...dailyQuotes,
+      ...monthlySupplement,
+      ...getMonthSpecificSupplement(monthKey),
+    ]).slice(0, Math.max(CONFIG.minimumDailyQuotePoolSize, dailyQuotes.length));
+    return { monthKey, weekday, quotes };
   }
 
   // 缺少当月库时使用独立应急库，绝不回退并重复上个月内容。
   console.warn(`未找到 ${monthKey} 月度句子库，正在使用独立应急库。请在 quotes-data.js 添加新月份。`);
-  return { monthKey: "emergency", weekday, quotes: EMERGENCY_QUOTE_LIBRARY[weekday] };
+  const quotes = getUniqueQuotes([
+    ...EMERGENCY_QUOTE_LIBRARY[weekday],
+    ...Object.values(EMERGENCY_QUOTE_LIBRARY).flat(),
+    ...LEGACY_QUOTES,
+  ]).slice(0, Math.max(CONFIG.minimumDailyQuotePoolSize, EMERGENCY_QUOTE_LIBRARY[weekday].length));
+  return { monthKey: "emergency", weekday, quotes };
 }
 
 function getDailyQuoteHistory(date = new Date()) {
@@ -342,6 +380,15 @@ function validateMonthlyQuoteLibraries() {
   const emergencyTexts = Object.values(EMERGENCY_QUOTE_LIBRARY).flat().map((quote) => quote.text.trim());
   const emergencyDuplicates = emergencyTexts.filter((text) => monthlyTexts.has(text));
   if (emergencyDuplicates.length) console.warn("应急句子库与月度库存在重复：", emergencyDuplicates);
+
+  const todayPool = getDailyQuotePool().quotes;
+  if (todayPool.length < CONFIG.minimumDailyQuotePoolSize) {
+    console.error(
+      `今日保护池只有 ${todayPool.length} 条，无法保证连续 4 小时不重复；至少需要 ${CONFIG.minimumDailyQuotePoolSize} 条。`
+    );
+  } else {
+    console.info(`今日保护池共 ${todayPool.length} 条，可保证连续 4 小时定时刷新不重复。`);
+  }
 }
 
 function initializeInteractions() {
